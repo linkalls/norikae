@@ -1,0 +1,31 @@
+{
+  "name": "乗換案内",
+  "short_name": "乗換",
+  "description": "Tokyo transit navigator — 東京乗換案内",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f9fafb",
+  "theme_color": "#2563eb",
+  "lang": "ja",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["travel", "utilities"],
+  "shortcuts": [
+    {
+      "name": "経路検索",
+      "url": "/?tab=search",
+      "description": "出発地・目的地を指定して経路を検索"
+    },
+    {
+      "name": "運行情報",
+      "url": "/?tab=diainfo",
+      "description": "現在の運行・遅延情報を確認"
+    }
+  ]
+}

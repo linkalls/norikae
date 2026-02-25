@@ -1,0 +1,10 @@
+{
+  "name": "norikae",
+  "version": "0.0.1",
+  "type": "module",
+  "private": true,
+  "workspaces": [
+    "api-client",
+    "webui"
+  ]
+}
