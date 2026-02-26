@@ -38,6 +38,19 @@ bun run build
 NODE_ENV=production bun run preview
 ```
 
+### Cloudflare Workers へのデプロイ
+
+```bash
+# dist/static へのビルドと wrangler deploy を実行
+bun run deploy
+```
+
+シークレットの設定:
+
+```bash
+wrangler secret put NORIKAE_ACCESS_TOKEN
+```
+
 ## 環境変数
 
 `webui/.env` を編集してください:

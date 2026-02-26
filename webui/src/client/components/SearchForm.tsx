@@ -8,6 +8,11 @@ import {
   type SuggestStation,
 } from "../api";
 
+function getLocalISOString(date: Date) {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 interface Props {
   onSearch: (req: SearchRequest) => void;
   loading?: boolean;
@@ -22,33 +27,50 @@ type SuggestItem =
   | (SuggestStation & { _type: "station" })
   | (SuggestSpot & { _type: "spot" });
 
-function useSuggest(value: string) {
+// キャッシュ: 入力値 → サジェスト結果
+const suggestCache = new Map<string, SuggestResult>();
+
+function useSuggest() {
   const [results, setResults] = useState<SuggestResult | null>(null);
   const [open, setOpen] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    if (value.trim().length === 0) {
+  const fetchSuggest = useCallback((val: string) => {
+    if (val.trim().length === 0) {
       setResults(null);
       setOpen(false);
+      if (timer.current) clearTimeout(timer.current);
       return;
     }
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(async () => {
+      const q = val.trim();
+      if (suggestCache.has(q)) {
+        setResults(suggestCache.get(q)!);
+        setOpen(true);
+        return;
+      }
       try {
-        const res = await suggestItems(value.trim());
+        const res = await suggestItems(q);
+        suggestCache.set(q, res);
         setResults(res);
         setOpen(true);
       } catch {
         // サジェスト失敗は無視
       }
-    }, 250);
+    }, 600);
+  }, []);
+
+  const close = useCallback(() => {
+    setOpen(false);
+    if (timer.current) clearTimeout(timer.current);
+  }, []);
+
+  useEffect(() => {
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };
-  }, [value]);
-
-  const close = useCallback(() => setOpen(false), []);
+  }, []);
 
   const flatItems: SuggestItem[] = results
     ? [
@@ -61,7 +83,7 @@ function useSuggest(value: string) {
     ]
     : [];
 
-  return { flatItems, open, close };
+  return { flatItems, open, close, fetchSuggest };
 }
 
 interface StationInputProps {
@@ -74,7 +96,7 @@ interface StationInputProps {
 }
 
 function StationInput({ label, value, onChange, onSelect, placeholder }: StationInputProps) {
-  const { flatItems, open, close } = useSuggest(value);
+  const { flatItems, open, close, fetchSuggest } = useSuggest();
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -95,9 +117,11 @@ function StationInput({ label, value, onChange, onSelect, placeholder }: Station
         value={value}
         onChange={(e) => {
           onChange(e.target.value);
+          fetchSuggest(e.target.value);
           // 手入力時はコードをクリア (サジェストの選択ではないため)
           onSelect?.(e.target.value, "", "");
         }}
+        onFocus={(e) => fetchSuggest(e.target.value)}
         placeholder={placeholder}
         required
         autoComplete="off"
@@ -176,9 +200,7 @@ export default function SearchForm({ onSearch, loading, history = [], onRemoveHi
   const [via, setVia] = useState("");
   const [showVia, setShowVia] = useState(false);
   const [datetime, setDatetime] = useState(() => {
-    const now = new Date();
-    now.setSeconds(0, 0);
-    return now.toISOString().slice(0, 16);
+    return getLocalISOString(new Date());
   });
   const [type, setType] = useState<1 | 4 | 8>(1);
   const [sort, setSort] = useState<0 | 1 | 2>(0);
@@ -251,12 +273,21 @@ export default function SearchForm({ onSearch, loading, history = [], onRemoveHi
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <input
-          type="datetime-local"
-          value={datetime}
-          onChange={(e) => setDatetime(e.target.value)}
-          className="border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
-        />
+        <div className="flex items-center gap-2">
+          <input
+            type="datetime-local"
+            value={datetime}
+            onChange={(e) => setDatetime(e.target.value)}
+            className="border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+          />
+          <button
+            type="button"
+            onClick={() => setDatetime(getLocalISOString(new Date()))}
+            className="text-xs px-3 py-2 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 font-medium transition shrink-0"
+          >
+            現在時刻
+          </button>
+        </div>
         <div className="flex gap-1 text-sm">
           {([{ label: "出発", value: 1 }, { label: "到着", value: 4 }, { label: "終電", value: 8 }] as const).map(
             ({ label, value }) => (

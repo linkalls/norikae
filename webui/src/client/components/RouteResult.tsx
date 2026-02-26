@@ -26,6 +26,12 @@ function fareLabel(n?: number) {
   return `¥${n.toLocaleString()}`;
 }
 
+function formatDistance(d?: number) {
+  if (d == null || d === 0) return null;
+  // API returns distance in 100m units. e.g. 324 = 32.4km
+  return (d / 10).toFixed(1);
+}
+
 const BADGE_STYLE: Record<string, string> = {
   最速: "bg-blue-500 text-white",
   乗換少: "bg-purple-500 text-white",
@@ -248,7 +254,21 @@ function SegmentEdgeView({ segments, fromName, toName }: {
                 <div className="w-5 h-5 rounded-full bg-orange-100 flex items-center justify-center text-xs shrink-0">
                   🔄
                 </div>
-                <span className="text-xs text-orange-600 font-medium">乗換</span>
+                <span className="text-xs text-orange-600 font-medium">
+                  乗換
+                  {(() => {
+                    const prevArr = segments[si - 1].arrivalTime;
+                    const nextDep = seg.departureTime;
+                    if (prevArr && nextDep) {
+                      const [h1, m1] = prevArr.split(":").map(Number);
+                      const [h2, m2] = nextDep.split(":").map(Number);
+                      let diff = (h2 * 60 + m2) - (h1 * 60 + m1);
+                      if (diff < 0) diff += 24 * 60;
+                      return ` (${diff}分待ち)`;
+                    }
+                    return null;
+                  })()}
+                </span>
               </div>
             )}
             {/* 路線名ヘッダー */}
@@ -652,7 +672,7 @@ function RouteDetail({ route, fromName, toName }: { route: Route; fromName?: str
       {/* 距離・CO2 */}
       {(route.distance || route.co2) ? (
         <div className="flex flex-wrap gap-4 text-xs text-gray-500 pt-1">
-          {route.distance ? <span>📏 距離 {route.distance} km</span> : null}
+          {route.distance ? <span>📏 距離 {formatDistance(route.distance)} km</span> : null}
           {route.co2 ? <span>🌿 CO₂ {route.co2} g/人</span> : null}
         </div>
       ) : null}
@@ -786,7 +806,7 @@ export default function RouteResult({ routes, from: fromName, to: toName }: Prop
                   <span className="text-gray-400">{route.passStation.length}駅経由</span>
                 )}
                 {route.distance ? (
-                  <span className="text-gray-400">{route.distance}km</span>
+                  <span className="text-gray-400">{formatDistance(route.distance)}km</span>
                 ) : null}
                 {(route.timeWalk ?? 0) > 0 ? (
                   <span className="text-sky-600 font-medium bg-sky-50 px-1.5 py-0.5 rounded">🚶 徒歩{route.timeWalk}分</span>

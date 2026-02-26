@@ -100,6 +100,23 @@ NODE_ENV=production bun run preview
 
 ビルド後は `http://localhost:3000` 一本で動作します。
 
+### 6. Cloudflare Workers へのデプロイ
+
+Cloudflare アカウントをお持ちの場合、`wrangler` を使ってエッジにデプロイできます。
+
+```bash
+cd webui
+# 初回はブラウザが開いて Cloudflare へのログインを求められます
+bun run deploy
+```
+
+API トークン (`NORIKAE_ACCESS_TOKEN`) を使用する場合は、Cloudflare の環境変数としてシークレットを登録してください:
+
+```bash
+cd webui
+npx wrangler secret put NORIKAE_ACCESS_TOKEN
+```
+
 ### 6. 型チェック
 
 ```bash

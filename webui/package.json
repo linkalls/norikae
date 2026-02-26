@@ -8,6 +8,8 @@
     "server:dev": "bun --watch src/server/index.ts",
     "build": "vite build",
     "preview": "cross-env NODE_ENV=production bun src/server/index.ts",
+    "deploy": "bun run build && cross-env CI=true wrangler deploy",
+    "dev:worker": "wrangler dev",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -17,6 +19,7 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250214.0",
     "@tailwindcss/vite": "^4.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
@@ -25,6 +28,7 @@
     "cross-env": "^10.1.0",
     "tailwindcss": "^4.2.1",
     "typescript": "5.9.3",
-    "vite": "^7.3.1"
+    "vite": "^7.3.1",
+    "wrangler": "4"
   }
 }

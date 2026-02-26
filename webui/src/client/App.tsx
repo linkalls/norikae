@@ -13,6 +13,16 @@ import SearchForm from "./components/SearchForm";
 
 type Tab = "search" | "diainfo";
 
+/** YYYYMMDDHHmm に分を加算 */
+function addMinsToDateStr(dateStr: string, minutes: number): string {
+  if (!dateStr || dateStr.length < 12) return dateStr;
+  const y = +dateStr.slice(0, 4), mo = +dateStr.slice(4, 6) - 1;
+  const d = +dateStr.slice(6, 8), h = +dateStr.slice(8, 10), m = +dateStr.slice(10, 12);
+  const dt = new Date(y, mo, d, h, m + minutes);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${dt.getFullYear()}${p(dt.getMonth() + 1)}${p(dt.getDate())}${p(dt.getHours())}${p(dt.getMinutes())}`;
+}
+
 // ─── 検索履歴 ────────────────────────────────────────────────────────
 const HISTORY_KEY = "norikae-history";
 function useSearchHistory() {
@@ -70,8 +80,10 @@ export default function App() {
   const [searchFrom, setSearchFrom] = useState<string | undefined>();
   const [searchTo, setSearchTo] = useState<string | undefined>();
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [lastSearchReq, setLastSearchReq] = useState<SearchRequest | null>(null);
 
   const handleSearch = useCallback(async (req: SearchRequest) => {
+    setLastSearchReq(req);
     addHistory(req.from, req.to);
     setSearching(true);
     setSearchError(null);
@@ -218,6 +230,60 @@ export default function App() {
                     </button>
                   )}
                 </div>
+
+                {/* 検索オプションタブ & 前後検索 */}
+                {routes.length > 0 && lastSearchReq && (
+                  <div className="flex flex-col gap-3 mb-2 mt-1">
+                    {/* ソート切り替え */}
+                    <div className="flex gap-1 text-sm bg-gray-200/50 p-1.5 rounded-xl self-start">
+                      {([
+                        { label: "⚡ 速い", value: 0 },
+                        { label: "🔄 乗換少", value: 1 },
+                        { label: "💴 安い", value: 2 },
+                      ] as const).map(({ label, value }) => (
+                        <button
+                          key={value}
+                          onClick={() => {
+                            if (lastSearchReq.sort !== value) {
+                              handleSearch({ ...lastSearchReq, sort: value });
+                            }
+                          }}
+                          className={`px-3 py-1.5 rounded-lg transition font-medium text-xs ${lastSearchReq.sort === value ? "bg-white text-gray-800 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    {/* 1本前・1本後 */}
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => {
+                          const targetTime = lastSearchReq.type === 4 ? routes[0].arrivalTime : routes[0].departureTime;
+                          if (targetTime) {
+                            const newDate = addMinsToDateStr(targetTime, -1);
+                            handleSearch({ ...lastSearchReq, date: newDate });
+                          }
+                        }}
+                        className="flex-1 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl text-sm font-bold hover:bg-gray-50 hover:border-gray-300 transition shadow-sm"
+                      >
+                        ← 1本前
+                      </button>
+                      <button
+                        onClick={() => {
+                          const targetTime = lastSearchReq.type === 4 ? routes[routes.length - 1].arrivalTime : routes[routes.length - 1].departureTime;
+                          if (targetTime) {
+                            const newDate = addMinsToDateStr(targetTime, 1);
+                            handleSearch({ ...lastSearchReq, date: newDate });
+                          }
+                        }}
+                        className="flex-1 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl text-sm font-bold hover:bg-gray-50 hover:border-gray-300 transition shadow-sm"
+                      >
+                        1本後 →
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 <RouteResult routes={routes} searchDate={searchDate} from={searchFrom} to={searchTo} />
               </>
             )}
